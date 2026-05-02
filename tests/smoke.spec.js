@@ -43,3 +43,33 @@ test("tab arrow navigation does not enter quiz symbols", async ({ page }) => {
   await expect(page.getByRole("tab", { name: "Letter -> Morse" })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("#letter-sequence")).toHaveText("-");
 });
+
+test("theme panel offers seven presets and persists a selected preset", async ({ page }) => {
+  await page.goto(url);
+  await page.getByRole("button", { name: "Open theme settings" }).click();
+  await expect(page.getByRole("dialog", { name: "Theme settings" })).toBeVisible();
+  await expect(page.locator("[data-theme-preset]")).toHaveCount(7);
+
+  await page.getByRole("button", { name: "Amber Terminal theme" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "amber");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "amber");
+});
+
+test("custom theme editor saves user colors", async ({ page }) => {
+  await page.goto(url);
+  await page.getByRole("button", { name: "Open theme settings" }).click();
+  await page.getByLabel("Custom theme name").fill("Night Lab");
+  await page.getByLabel("Background color").fill("#101322");
+  await page.getByLabel("Surface color").fill("#182033");
+  await page.getByLabel("Accent color").fill("#7dd3fc");
+  await page.getByLabel("Text color").fill("#eff6ff");
+  await page.getByRole("button", { name: "Save custom theme" }).click();
+
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "custom");
+  await expect(page.getByRole("button", { name: "Custom: Night Lab theme" })).toBeVisible();
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "custom");
+  await page.getByRole("button", { name: "Open theme settings" }).click();
+  await expect(page.getByRole("button", { name: "Custom: Night Lab theme" })).toBeVisible();
+});

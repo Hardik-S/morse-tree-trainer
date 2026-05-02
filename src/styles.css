@@ -17,6 +17,7 @@
   --green-deep: #0e4522;
   --amber: #ffbd3a;
   --red: #ff4b70;
+  --accent-rgb: 57, 255, 110;
   --shadow: 0 22px 80px rgba(0, 0, 0, 0.55);
   --mono: "Share Tech Mono", Consolas, "Courier New", monospace;
   --head: "Orbitron", "Share Tech Mono", Consolas, monospace;
@@ -37,7 +38,7 @@ body {
   min-height: 100dvh;
   overflow-x: hidden;
   background:
-    radial-gradient(ellipse 90% 42% at 50% -12%, rgba(57, 255, 110, 0.14), transparent 68%),
+    radial-gradient(ellipse 90% 42% at 50% -12%, rgba(var(--accent-rgb), 0.14), transparent 68%),
     linear-gradient(rgba(14, 31, 18, 0.45) 1px, transparent 1px),
     linear-gradient(90deg, rgba(14, 31, 18, 0.45) 1px, transparent 1px),
     var(--bg);
@@ -146,6 +147,13 @@ p {
   color: var(--muted);
 }
 
+.header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
 .icon-button:hover,
 .control:hover,
 .tab-button:hover {
@@ -156,6 +164,149 @@ p {
 :focus-visible {
   outline: 2px solid var(--amber);
   outline-offset: 3px;
+}
+
+.theme-panel {
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg, rgba(var(--accent-rgb), 0.1), transparent 42%),
+    var(--panel);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(var(--accent-rgb), 0.14);
+  padding: clamp(14px, 3vw, 20px);
+}
+
+.theme-panel[hidden] {
+  display: none;
+}
+
+.theme-panel-top {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.theme-panel h2 {
+  color: var(--green);
+  font-family: var(--head);
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.theme-panel p {
+  margin-top: 4px;
+  color: var(--muted);
+}
+
+.theme-presets {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.theme-swatch {
+  min-height: 78px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  padding: 8px;
+  text-align: left;
+}
+
+.theme-swatch[aria-pressed="true"] {
+  border-color: var(--green);
+  box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.25), 0 0 24px rgba(var(--accent-rgb), 0.15);
+}
+
+.theme-swatch span {
+  display: block;
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.theme-swatch .swatch-dots {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  max-width: 96px;
+  margin-top: 0;
+}
+
+.theme-swatch .swatch-dots i {
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.custom-theme-form {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.2fr) minmax(160px, 1.4fr) repeat(4, minmax(88px, 1fr)) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.custom-theme-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--dim);
+  font-size: 0.68rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.custom-theme-form input {
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 8px 10px;
+}
+
+.custom-theme-form input[type="color"] {
+  padding: 4px;
+}
+
+.custom-theme-preview {
+  min-height: 58px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 8px;
+}
+
+.custom-theme-preview span,
+.custom-theme-preview i {
+  display: block;
+  border-radius: 6px;
+}
+
+.custom-theme-preview span {
+  height: 16px;
+  width: 75%;
+  background: var(--text);
+  opacity: 0.85;
+}
+
+.custom-theme-preview i {
+  height: 22px;
+  width: 48%;
+  margin-top: 8px;
+  background: var(--green);
+  box-shadow: 0 0 16px rgba(var(--accent-rgb), 0.35);
 }
 
 .trainer-shell {
@@ -504,8 +655,25 @@ kbd {
     align-items: start;
   }
 
+  .header-actions {
+    flex-wrap: wrap;
+  }
+
   .icon-button {
     justify-self: start;
+  }
+
+  .theme-panel-top,
+  .custom-theme-form {
+    grid-template-columns: 1fr;
+  }
+
+  .theme-panel-top {
+    display: grid;
+  }
+
+  .theme-presets {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .tabs {
@@ -548,6 +716,10 @@ kbd {
 
 @media (max-width: 380px) {
   .icon-button {
+    width: 100%;
+  }
+
+  .header-actions {
     width: 100%;
   }
 

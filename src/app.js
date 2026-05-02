@@ -39,7 +39,19 @@ const STORAGE_KEYS = Object.freeze({
   letterStats: "morseTreeTrainer.letterStats",
   morseStats: "morseTreeTrainer.morseStats",
   muted: "morseTreeTrainer.muted",
+  theme: "morseTreeTrainer.theme",
+  customTheme: "morseTreeTrainer.customTheme",
 });
+
+const THEME_PRESETS = Object.freeze([
+  theme("matrix", "Matrix Green", "#090d0a", "#0e1510", "#111a13", "#39ff6e", "#d5f6db"),
+  theme("amber", "Amber Terminal", "#100c05", "#1a1307", "#211709", "#ffbd3a", "#ffe8b6"),
+  theme("arctic", "Arctic Signal", "#071018", "#0d1c28", "#102739", "#67e8f9", "#e6fbff"),
+  theme("violet", "Violet Night", "#10091a", "#1a1028", "#241639", "#c084fc", "#f5edff"),
+  theme("solar", "Solar Dawn", "#fbf4df", "#fffaf0", "#f2e4bf", "#c76b14", "#2f2618"),
+  theme("rose", "Rose Circuit", "#160811", "#24101d", "#321729", "#fb7185", "#ffe4ea"),
+  theme("graphite", "Graphite Pulse", "#0b0d10", "#14181d", "#1d232b", "#a3e635", "#edf7df"),
+]);
 
 const state = {
   activeTab: "explore",
@@ -50,6 +62,8 @@ const state = {
   morseTargetLetter: "A",
   morseSubmitted: false,
   muted: loadBool(STORAGE_KEYS.muted),
+  themeId: loadThemeId(),
+  customTheme: loadCustomTheme(),
   isPlaying: false,
   audioContext: null,
 };
@@ -65,6 +79,10 @@ document.addEventListener("DOMContentLoaded", init);
 
 function init() {
   cacheElements();
+  applyActiveTheme();
+  renderThemeOptions();
+  syncCustomThemeForm();
+  updateCustomPreview();
   renderTree();
   bindTabs();
   bindControls();
@@ -76,6 +94,38 @@ function init() {
   renderStats("morse");
 }
 
+function theme(id, name, bg, surface, panel, accent, text) {
+  return {
+    id,
+    name,
+    colors: { bg, surface, panel, accent, text },
+    tokens: buildThemeTokens(bg, surface, panel, accent, text),
+  };
+}
+
+function buildThemeTokens(bg, surface, panel, accent, text) {
+  const accentRgb = hexToRgb(accent);
+  return {
+    "--bg": bg,
+    "--surface": surface,
+    "--panel": panel,
+    "--panel-strong": mixHex(panel, accent, 0.18),
+    "--border": mixHex(surface, accent, 0.36),
+    "--border-soft": mixHex(bg, accent, 0.22),
+    "--line": mixHex(bg, accent, 0.4),
+    "--text": text,
+    "--muted": mixHex(text, surface, 0.42),
+    "--dim": mixHex(text, surface, 0.64),
+    "--green": accent,
+    "--green-soft": mixHex(accent, text, 0.22),
+    "--green-deep": mixHex(bg, accent, 0.28),
+    "--amber": mixHex("#ffbd3a", accent, 0.18),
+    "--red": mixHex("#ff4b70", accent, 0.12),
+    "--accent-rgb": `${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}`,
+    "--shadow": "0 22px 80px rgba(0, 0, 0, 0.55)",
+  };
+}
+
 function cacheElements() {
   Object.assign(els, {
     tabs: [...document.querySelectorAll("[role='tab']")],
@@ -84,6 +134,17 @@ function cacheElements() {
     treeSvg: document.querySelector("#tree-svg"),
     muteBtn: document.querySelector("#mute-btn"),
     muteIcon: document.querySelector("#mute-icon"),
+    themeToggle: document.querySelector("#theme-toggle"),
+    themePanel: document.querySelector("#theme-panel"),
+    themeClose: document.querySelector("#theme-close"),
+    themePresets: document.querySelector("#theme-presets"),
+    customThemeForm: document.querySelector("#custom-theme-form"),
+    customThemeName: document.querySelector("#custom-theme-name"),
+    customThemeBg: document.querySelector("#custom-theme-bg"),
+    customThemeSurface: document.querySelector("#custom-theme-surface"),
+    customThemeAccent: document.querySelector("#custom-theme-accent"),
+    customThemeText: document.querySelector("#custom-theme-text"),
+    customThemePreview: document.querySelector("#custom-theme-preview"),
     exploreSequence: document.querySelector("#explore-sequence"),
     exploreLetter: document.querySelector("#explore-letter"),
     exploreDot: document.querySelector("#explore-dot"),
@@ -237,6 +298,12 @@ function activateTab(tabName, focusPanel = false) {
 
 function bindControls() {
   els.muteBtn.addEventListener("click", toggleMute);
+  els.themeToggle.addEventListener("click", toggleThemePanel);
+  els.themeClose.addEventListener("click", closeThemePanel);
+  els.customThemeForm.addEventListener("submit", saveCustomThemeFromForm);
+  for (const input of [els.customThemeBg, els.customThemeSurface, els.customThemeAccent, els.customThemeText]) {
+    input.addEventListener("input", updateCustomPreview);
+  }
 
   els.exploreDot.addEventListener("click", () => addExploreSymbol("."));
   els.exploreDash.addEventListener("click", () => addExploreSymbol("-"));
@@ -267,6 +334,137 @@ function bindControls() {
   });
 
   document.addEventListener("keydown", onGlobalKeydown);
+}
+
+function toggleThemePanel() {
+  const willOpen = els.themePanel.hidden;
+  els.themePanel.hidden = !willOpen;
+  els.themeToggle.setAttribute("aria-expanded", String(willOpen));
+  if (willOpen) els.themePanel.querySelector("button")?.focus();
+}
+
+function closeThemePanel() {
+  els.themePanel.hidden = true;
+  els.themeToggle.setAttribute("aria-expanded", "false");
+  els.themeToggle.focus();
+}
+
+function renderThemeOptions() {
+  const presetButtons = THEME_PRESETS.map((preset) => themeButton(preset, "data-theme-preset")).join("");
+  const customButton = state.customTheme ? themeButton(customThemeOption(), "data-custom-theme") : "";
+  els.themePresets.innerHTML = presetButtons + customButton;
+
+  els.themePresets.querySelectorAll("[data-theme-preset]").forEach((button) => {
+    button.addEventListener("click", () => selectTheme(button.dataset.themeId));
+  });
+  els.themePresets.querySelector("[data-custom-theme]")?.addEventListener("click", () => selectTheme("custom"));
+}
+
+function themeButton(option, marker) {
+  const selected = state.themeId === option.id;
+  const label = `${option.name} theme`;
+  return `
+    <button
+      class="theme-swatch"
+      type="button"
+      ${marker}
+      data-theme-id="${escapeHtml(option.id)}"
+      aria-label="${escapeHtml(label)}"
+      aria-pressed="${selected}"
+    >
+      <span class="swatch-dots" aria-hidden="true">
+        <i style="background:${option.colors.bg}"></i>
+        <i style="background:${option.colors.surface}"></i>
+        <i style="background:${option.colors.accent}"></i>
+        <i style="background:${option.colors.text}"></i>
+      </span>
+      <span>${escapeHtml(option.name)}</span>
+    </button>
+  `;
+}
+
+function customThemeOption() {
+  const name = state.customTheme?.name?.trim() || "My Theme";
+  const colors = state.customTheme?.colors || defaultCustomColors();
+  return {
+    id: "custom",
+    name: `Custom: ${name}`,
+    colors,
+    tokens: buildThemeTokens(colors.bg, colors.surface, colors.panel, colors.accent, colors.text),
+  };
+}
+
+function selectTheme(themeId) {
+  if (themeId === "custom" && !state.customTheme) return;
+  state.themeId = themeId;
+  try {
+    localStorage.setItem(STORAGE_KEYS.theme, themeId);
+  } catch {
+    // Non-critical preference.
+  }
+  applyActiveTheme();
+  renderThemeOptions();
+}
+
+function applyActiveTheme() {
+  const option = getThemeOption(state.themeId) || THEME_PRESETS[0];
+  state.themeId = option.id;
+  document.documentElement.dataset.theme = option.id;
+  for (const [name, value] of Object.entries(option.tokens)) {
+    document.documentElement.style.setProperty(name, value);
+  }
+  const themeColor = document.querySelector('meta[name="theme-color"]');
+  if (themeColor) themeColor.setAttribute("content", option.colors.bg);
+}
+
+function getThemeOption(themeId) {
+  if (themeId === "custom") return state.customTheme ? customThemeOption() : null;
+  return THEME_PRESETS.find((preset) => preset.id === themeId) || THEME_PRESETS[0];
+}
+
+function syncCustomThemeForm() {
+  const custom = state.customTheme || { name: "", colors: defaultCustomColors() };
+  els.customThemeName.value = custom.name || "";
+  els.customThemeBg.value = custom.colors.bg;
+  els.customThemeSurface.value = custom.colors.surface;
+  els.customThemeAccent.value = custom.colors.accent;
+  els.customThemeText.value = custom.colors.text;
+}
+
+function saveCustomThemeFromForm(event) {
+  event.preventDefault();
+  const colors = {
+    bg: els.customThemeBg.value,
+    surface: els.customThemeSurface.value,
+    panel: mixHex(els.customThemeSurface.value, els.customThemeBg.value, 0.35),
+    accent: els.customThemeAccent.value,
+    text: els.customThemeText.value,
+  };
+  state.customTheme = {
+    name: els.customThemeName.value.trim() || "My Theme",
+    colors,
+  };
+  state.themeId = "custom";
+  try {
+    localStorage.setItem(STORAGE_KEYS.customTheme, JSON.stringify(state.customTheme));
+    localStorage.setItem(STORAGE_KEYS.theme, state.themeId);
+  } catch {
+    // Theme still applies for the current session.
+  }
+  applyActiveTheme();
+  renderThemeOptions();
+  updateCustomPreview();
+}
+
+function updateCustomPreview() {
+  const bg = els.customThemeBg.value;
+  const surface = els.customThemeSurface.value;
+  const accent = els.customThemeAccent.value;
+  const text = els.customThemeText.value;
+  els.customThemePreview.style.background = `linear-gradient(135deg, ${surface}, ${bg})`;
+  els.customThemePreview.style.borderColor = accent;
+  els.customThemePreview.querySelector("span").style.background = text;
+  els.customThemePreview.querySelector("i").style.background = accent;
 }
 
 function onGlobalKeydown(event) {
@@ -584,6 +782,45 @@ function displayMorse(sequence) {
   return sequence ? sequence.replaceAll(".", "·").replaceAll("-", "—") : "-";
 }
 
+function loadThemeId() {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.theme) || "matrix";
+  } catch {
+    return "matrix";
+  }
+}
+
+function loadCustomTheme() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEYS.customTheme));
+    if (parsed?.colors?.bg && parsed?.colors?.surface && parsed?.colors?.accent && parsed?.colors?.text) {
+      return {
+        name: String(parsed.name || "My Theme").slice(0, 24),
+        colors: {
+          bg: normalizeHex(parsed.colors.bg, "#101322"),
+          surface: normalizeHex(parsed.colors.surface, "#182033"),
+          panel: normalizeHex(parsed.colors.panel, mixHex(parsed.colors.surface, parsed.colors.bg, 0.35)),
+          accent: normalizeHex(parsed.colors.accent, "#7dd3fc"),
+          text: normalizeHex(parsed.colors.text, "#eff6ff"),
+        },
+      };
+    }
+  } catch {
+    // Ignore corrupt theme settings.
+  }
+  return null;
+}
+
+function defaultCustomColors() {
+  return {
+    bg: "#101322",
+    surface: "#182033",
+    panel: "#151a29",
+    accent: "#7dd3fc",
+    text: "#eff6ff",
+  };
+}
+
 function loadBool(key) {
   try {
     return localStorage.getItem(key) === "true";
@@ -606,6 +843,44 @@ function wait(ms) {
 
 function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function normalizeHex(value, fallback) {
+  return /^#[0-9a-f]{6}$/i.test(String(value)) ? String(value) : fallback;
+}
+
+function hexToRgb(hex) {
+  const normalized = normalizeHex(hex, "#39ff6e").slice(1);
+  return {
+    r: Number.parseInt(normalized.slice(0, 2), 16),
+    g: Number.parseInt(normalized.slice(2, 4), 16),
+    b: Number.parseInt(normalized.slice(4, 6), 16),
+  };
+}
+
+function rgbToHex({ r, g, b }) {
+  return `#${[r, g, b].map((value) => value.toString(16).padStart(2, "0")).join("")}`;
+}
+
+function mixHex(first, second, weight) {
+  const a = hexToRgb(first);
+  const b = hexToRgb(second);
+  const clamped = Math.max(0, Math.min(1, weight));
+  return rgbToHex({
+    r: Math.round(a.r * (1 - clamped) + b.r * clamped),
+    g: Math.round(a.g * (1 - clamped) + b.g * clamped),
+    b: Math.round(a.b * (1 - clamped) + b.b * clamped),
+  });
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[char]);
 }
 
 window.MorseTreeTrainer = Object.freeze({ MORSE_MAP, DECODE_MAP });

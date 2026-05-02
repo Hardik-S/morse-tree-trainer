@@ -27,10 +27,62 @@
         <h1>Morse Tree Trainer</h1>
         <p>Decision tree, audio, focused A-Z practice.</p>
       </div>
-      <button class="icon-button" id="mute-btn" type="button" aria-label="Mute audio" aria-pressed="false">
-        <span aria-hidden="true" id="mute-icon">Sound</span>
-      </button>
+      <div class="header-actions">
+        <button
+          class="icon-button"
+          id="theme-toggle"
+          type="button"
+          aria-label="Open theme settings"
+          aria-controls="theme-panel"
+          aria-expanded="false"
+        >
+          Theme
+        </button>
+        <button class="icon-button" id="mute-btn" type="button" aria-label="Mute audio" aria-pressed="false">
+          <span aria-hidden="true" id="mute-icon">Sound</span>
+        </button>
+      </div>
     </header>
+
+    <section class="theme-panel" id="theme-panel" role="dialog" aria-labelledby="theme-title" hidden>
+      <div class="theme-panel-top">
+        <div>
+          <h2 id="theme-title">Theme settings</h2>
+          <p>Choose a preset or save a custom palette.</p>
+        </div>
+        <button class="control small" id="theme-close" type="button">Close</button>
+      </div>
+
+      <div class="theme-presets" id="theme-presets" role="group" aria-label="Theme presets"></div>
+
+      <form class="custom-theme-form" id="custom-theme-form">
+        <div class="custom-theme-preview" id="custom-theme-preview" aria-hidden="true">
+          <span></span>
+          <i></i>
+        </div>
+        <label>
+          Custom theme name
+          <input id="custom-theme-name" type="text" maxlength="24" autocomplete="off" placeholder="Night Lab">
+        </label>
+        <label>
+          Background color
+          <input id="custom-theme-bg" type="color" value="#101322">
+        </label>
+        <label>
+          Surface color
+          <input id="custom-theme-surface" type="color" value="#182033">
+        </label>
+        <label>
+          Accent color
+          <input id="custom-theme-accent" type="color" value="#7dd3fc">
+        </label>
+        <label>
+          Text color
+          <input id="custom-theme-text" type="color" value="#eff6ff">
+        </label>
+        <button class="control amber" type="submit">Save custom theme</button>
+      </form>
+    </section>
 
     <main class="trainer-shell" id="trainer">
       <nav class="tabs" aria-label="Training modes" role="tablist">
