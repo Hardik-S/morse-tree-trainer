@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+      name="description"
+      content="Learn Morse code with an interactive decision tree, audio playback, and two focused practice modes."
+    >
+    <meta name="theme-color" content="#090d0a">
+    <meta property="og:title" content="Morse Tree Trainer">
+    <meta
+      property="og:description"
+      content="A fast, keyboard-friendly trainer for learning Morse code by walking the decision tree."
+    >
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <title>Morse Tree Trainer</title>
+    <link rel="stylesheet" href="src/styles.css">
+    <script src="src/app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#trainer">Skip to trainer</a>
+
+    <header class="site-header">
+      <div>
+        <h1>Morse Tree Trainer</h1>
+        <p>Decision tree, audio, focused A-Z practice.</p>
+      </div>
+      <button class="icon-button" id="mute-btn" type="button" aria-label="Mute audio" aria-pressed="false">
+        <span aria-hidden="true" id="mute-icon">Sound</span>
+      </button>
+    </header>
+
+    <main class="trainer-shell" id="trainer">
+      <nav class="tabs" aria-label="Training modes" role="tablist">
+        <button
+          class="tab-button active"
+          id="tab-button-explore"
+          type="button"
+          role="tab"
+          aria-selected="true"
+          aria-controls="panel-explore"
+          data-tab="explore"
+        >
+          Explore
+        </button>
+        <button
+          class="tab-button"
+          id="tab-button-letter"
+          type="button"
+          role="tab"
+          aria-selected="false"
+          aria-controls="panel-letter"
+          tabindex="-1"
+          data-tab="letter"
+        >
+          Letter -&gt; Morse
+        </button>
+        <button
+          class="tab-button"
+          id="tab-button-morse"
+          type="button"
+          role="tab"
+          aria-selected="false"
+          aria-controls="panel-morse"
+          tabindex="-1"
+          data-tab="morse"
+        >
+          Morse -&gt; Letter
+        </button>
+      </nav>
+
+      <section
+        class="panel active"
+        id="panel-explore"
+        role="tabpanel"
+        aria-labelledby="tab-button-explore"
+        data-panel="explore"
+      >
+        <div class="panel-heading">
+          <div>
+            <h2>Explore the Tree</h2>
+            <p>Dots move left. Dashes move right. Build a path and hear the code.</p>
+          </div>
+          <div class="legend" role="group" aria-label="Tree legend">
+            <span><i class="legend-line dotted" aria-hidden="true"></i> Dot</span>
+            <span><i class="legend-line solid" aria-hidden="true"></i> Dash</span>
+          </div>
+        </div>
+
+        <div class="tree-wrap" id="tree-wrap" tabindex="0" aria-label="Interactive Morse decision tree">
+          <svg id="tree-svg" role="img" aria-label="Morse code decision tree"></svg>
+        </div>
+
+        <div class="readout-grid" aria-live="polite">
+          <div class="readout">
+            <span>Sequence</span>
+            <strong id="explore-sequence">-</strong>
+          </div>
+          <div class="readout">
+            <span>Letter</span>
+            <strong id="explore-letter">?</strong>
+          </div>
+        </div>
+
+        <div class="control-grid">
+          <button class="control primary" id="explore-dot" type="button">Dot</button>
+          <button class="control primary" id="explore-dash" type="button">Dash</button>
+          <button class="control" id="explore-back" type="button">Back</button>
+          <button class="control danger" id="explore-reset" type="button">Reset</button>
+          <button class="control amber span-two" id="explore-play" type="button" disabled>Play Code</button>
+        </div>
+
+        <details class="help">
+          <summary>Keyboard shortcuts</summary>
+          <p>
+            Use <kbd>.</kbd> or <kbd>Left</kbd> for dot, <kbd>-</kbd> or <kbd>Right</kbd> for dash,
+            <kbd>Backspace</kbd> to step back, <kbd>Esc</kbd> to reset, and <kbd>Enter</kbd> to play.
+          </p>
+        </details>
+      </section>
+
+      <section
+        class="panel"
+        id="panel-letter"
+        role="tabpanel"
+        aria-labelledby="tab-button-letter"
+        data-panel="letter"
+        hidden
+      >
+        <div class="panel-heading">
+          <div>
+            <h2>Letter -&gt; Morse</h2>
+            <p>Enter the dot-dash path for the target letter.</p>
+          </div>
+          <button class="control small" id="letter-new" type="button">New Letter</button>
+        </div>
+
+        <div class="target-card">
+          <span>Target letter</span>
+          <strong id="letter-target">A</strong>
+        </div>
+
+        <div class="readout-grid" aria-live="polite">
+          <div class="readout">
+            <span>Your Morse</span>
+            <strong id="letter-sequence">-</strong>
+          </div>
+          <div class="readout">
+            <span>Decodes to</span>
+            <strong id="letter-decoded">?</strong>
+          </div>
+        </div>
+
+        <p class="feedback" id="letter-feedback" aria-live="polite"></p>
+
+        <div class="control-grid">
+          <button class="control primary" id="letter-dot" type="button">Dot</button>
+          <button class="control primary" id="letter-dash" type="button">Dash</button>
+          <button class="control" id="letter-back" type="button">Back</button>
+          <button class="control danger" id="letter-clear" type="button">Clear</button>
+          <button class="control amber span-two" id="letter-submit" type="button">Submit</button>
+        </div>
+
+        <div class="stats-row" id="letter-stats" role="group" aria-label="Letter to Morse stats"></div>
+        <button class="control danger small" id="letter-reset-stats" type="button">Reset Stats</button>
+      </section>
+
+      <section
+        class="panel"
+        id="panel-morse"
+        role="tabpanel"
+        aria-labelledby="tab-button-morse"
+        data-panel="morse"
+        hidden
+      >
+        <div class="panel-heading">
+          <div>
+            <h2>Morse -&gt; Letter</h2>
+            <p>Read or play the sequence, then type the matching letter.</p>
+          </div>
+          <button class="control small" id="morse-new" type="button">New Code</button>
+        </div>
+
+        <div class="target-card">
+          <span>Target Morse</span>
+          <strong id="morse-target">.-</strong>
+        </div>
+
+        <div class="answer-row">
+          <label for="morse-answer">Your letter</label>
+          <input id="morse-answer" type="text" inputmode="text" maxlength="1" autocomplete="off">
+          <button class="control amber" id="morse-submit" type="button">Submit</button>
+          <button class="control" id="morse-play" type="button">Play</button>
+        </div>
+
+        <p class="feedback" id="morse-feedback" aria-live="polite"></p>
+
+        <div class="stats-row" id="morse-stats" role="group" aria-label="Morse to Letter stats"></div>
+        <button class="control danger small" id="morse-reset-stats" type="button">Reset Stats</button>
+
+        <details class="help">
+          <summary>Practice tip</summary>
+          <p>Try listening once before looking at the dots and dashes. Replay is available when audio is on.</p>
+        </details>
+      </section>
+    </main>
+  </body>
+</html>
