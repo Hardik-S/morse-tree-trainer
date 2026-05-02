@@ -28,10 +28,17 @@ npm run check
 
 The check validates the expected static files and the A-Z Morse map exposed in `src/app.js`.
 
+## Browser Smoke Tests
+
+```powershell
+npm run test:smoke
+```
+
+The smoke suite opens `index.html` with Playwright and verifies the core trainer flows across desktop, tablet, and narrow mobile viewports. It also covers tab keyboard navigation, theme preset persistence, and custom theme persistence.
+
 ## Deploy
 
 This repo is configured for Netlify as a static site:
 
 - Build command: none
 - Publish directory: `.`
-
