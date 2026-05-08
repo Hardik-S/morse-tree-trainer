@@ -73,3 +73,21 @@ test("custom theme editor saves user colors", async ({ page }) => {
   await page.getByRole("button", { name: "Open theme settings" }).click();
   await expect(page.getByRole("button", { name: "Custom: Night Lab theme" })).toBeVisible();
 });
+
+test("corrupt stored preferences and stats fall back cleanly", async ({ page }) => {
+  await page.goto(url);
+  await page.evaluate(() => {
+    localStorage.setItem("morseTreeTrainer.theme", "missing-theme");
+    localStorage.setItem("morseTreeTrainer.customTheme", "{not-json");
+    localStorage.setItem("morseTreeTrainer.letterStats", "{not-json");
+    localStorage.setItem("morseTreeTrainer.morseStats", JSON.stringify({ attempts: "many", correct: null }));
+  });
+
+  await page.reload();
+
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "matrix");
+  await expect(page.locator("#letter-stats")).toContainText("Attempts 0");
+  await expect(page.locator("#morse-stats")).toContainText("Accuracy 0%");
+  await page.getByRole("button", { name: "Open theme settings" }).click();
+  await expect(page.getByRole("button", { name: "Matrix Green theme" })).toHaveAttribute("aria-pressed", "true");
+});
